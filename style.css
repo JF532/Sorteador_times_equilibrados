@@ -1,0 +1,214 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  color: #e0e0e0;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  font-size: 2rem;
+  color: #00d9ff;
+  text-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+}
+
+h2 {
+  margin-bottom: 1rem;
+  color: #fff;
+  font-size: 1.4rem;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.hidden {
+  display: none;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input[type="number"],
+input[type="text"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: #00d9ff;
+}
+
+input[type="number"]::placeholder,
+input[type="text"]::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #00d9ff, #0099cc);
+  color: #fff;
+  box-shadow: 0 4px 15px rgba(0, 217, 255, 0.3);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #00ff88, #00cc6a);
+  color: #1a1a2e;
+  box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+  width: 100%;
+  margin-top: 1rem;
+}
+
+#info-times {
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 1rem;
+}
+
+.jogador-input {
+  display: grid;
+  grid-template-columns: 1fr 100px;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: center;
+}
+
+.jogador-input label {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  grid-column: 1 / -1;
+}
+
+.jogador-input input[type="text"] {
+  grid-column: 1;
+}
+
+.jogador-input input[type="number"] {
+  grid-column: 2;
+}
+
+#times-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.time-card {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem;
+  border-left: 4px solid;
+}
+
+.time-card:nth-child(6n+1) { border-left-color: #ff6b6b; }
+.time-card:nth-child(6n+2) { border-left-color: #4ecdc4; }
+.time-card:nth-child(6n+3) { border-left-color: #ffe66d; }
+.time-card:nth-child(6n+4) { border-left-color: #a29bfe; }
+.time-card:nth-child(6n+5) { border-left-color: #fd79a8; }
+.time-card:nth-child(6n+6) { border-left-color: #00cec9; }
+
+.time-card h3 {
+  color: #fff;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.jogador-lista {
+  list-style: none;
+}
+
+.jogador-lista li {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+}
+
+.jogador-lista li:last-child {
+  border-bottom: none;
+}
+
+.estrelas {
+  color: #ffd700;
+}
+
+.total-estrelas {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 2px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  color: #00d9ff;
+}
+
+#btn-novo {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .jogador-input {
+    grid-template-columns: 1fr;
+  }
+
+  .jogador-input input[type="number"] {
+    grid-column: 1;
+  }
+
+  #times-container {
+    grid-template-columns: 1fr;
+  }
+}

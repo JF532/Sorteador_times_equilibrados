@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sorteador de Times Equilibrados</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Sorteador de Times Equilibrados</h1>
+
+    <section id="config-section" class="card">
+      <h2>Configuração</h2>
+      <div class="form-group">
+        <label for="total-jogadores">Quantos vão jogar?</label>
+        <input type="number" id="total-jogadores" min="5" max="60" placeholder="Ex: 20">
+      </div>
+      <button id="btn-proximo" class="btn btn-primary">Próximo</button>
+    </section>
+
+    <section id="jogadores-section" class="card hidden">
+      <h2>Cadastrar Jogadores</h2>
+      <p id="info-times"></p>
+      <div id="lista-jogadores"></div>
+      <button id="btn-sortear" class="btn btn-success">Sortear Times</button>
+    </section>
+
+    <section id="resultado-section" class="card hidden">
+      <h2>Resultado</h2>
+      <div id="times-container"></div>
+      <button id="btn-novo" class="btn btn-primary">Novo Sorteio</button>
+    </section>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>
