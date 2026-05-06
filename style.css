@@ -195,6 +195,11 @@ input[type="text"]::placeholder {
   width: 100%;
 }
 
+#btn-novo-jogadores {
+  margin-top: 1.5rem;
+  width: 100%;
+}
+
 @media (max-width: 600px) {
   h1 {
     font-size: 1.5rem;
