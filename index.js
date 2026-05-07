@@ -373,8 +373,11 @@ btnProximo.addEventListener("click", () => {
     totalJogadores = nomesParseados.length;
     inputTotalJogadores.value = totalJogadores;
   } else {
+    nomesParseados = [];
     totalJogadores = Number(inputTotalJogadores.value);
   }
+
+  console.log("btnProximo - totalJogadores:", totalJogadores, "nomesParseados:", nomesParseados.length, nomesParseados);
 
   jogadoresPorTime = Number(inputJogadoresPorTime.value);
 
