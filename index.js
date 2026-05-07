@@ -435,7 +435,11 @@ btnSortear.addEventListener("click", () => {
 
   resultadoSection.classList.add("hidden");
   btn1Sortear.remove();
+  const inicio = performance.now();
   executar();
+  const fim = performance.now();
+  const tempoTotal = ((fim - inicio) / 1000).toFixed(2);
+  console.log(`Tempo total de execução: ${tempoTotal}s`);
 });
 
 btnNovo.addEventListener("click", () => {
