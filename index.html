@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sorteador de Times Equilibrados</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#070505">
+  <link rel="stylesheet" href="style.css" >
 </head>
 <body>
   <div class="container">
@@ -15,6 +16,10 @@
       <div class="form-group">
         <label for="total-jogadores">Quantos vão jogar?</label>
         <input type="number" id="total-jogadores" min="5" max="60" placeholder="Ex: 20">
+      </div>
+      <div class="form-group">
+        <label for="jogadores-por-time">Jogadores por time?</label>
+        <input type="number" id="jogadores-por-time" min="2" max="11" placeholder="Ex: 5" value="5">
       </div>
       <button id="btn-proximo" class="btn btn-primary">Próximo</button>
     </section>

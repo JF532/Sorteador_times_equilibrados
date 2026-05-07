@@ -2,12 +2,14 @@ const array_genes = []; // Array com todos os genes criados
 let populacao = []; // Array para colocar todos os indivíduos
 const tamPopulacao = 10;
 let totalJogadores;
+let jogadoresPorTime;
 let nTimes;
 
 const configSection = document.getElementById("config-section");
 const jogadoresSection = document.getElementById("jogadores-section");
 const resultadoSection = document.getElementById("resultado-section");
 const inputTotalJogadores = document.getElementById("total-jogadores");
+const inputJogadoresPorTime = document.getElementById("jogadores-por-time");
 const btnProximo = document.getElementById("btn-proximo");
 const btnSortear = document.getElementById("btn-sortear");
 const btnNovo = document.getElementById("btn-novo");
@@ -42,14 +44,14 @@ function embaralhar(array) {
 }
 
 function getMaximoPorTime() {
-  return 5;
+  return jogadoresPorTime;
 }
 
 function getCapacidadeTime(indiceTime) {
-  const timesCheios = Math.floor(totalJogadores / 5); // Quantos times vão ter jogadores completos
-  const resto = totalJogadores % 5; // Pega quantos jogadores sobraram
-  if (indiceTime < timesCheios) return 5; // Os primeiros times vão ficar com 5 jogadores, aí se por acaso sobrar ele vai ficar para o último time
-  if (indiceTime === timesCheios && resto > 0) return resto; // Voltar o resto dos jogadores
+  const timesCheios = Math.floor(totalJogadores / jogadoresPorTime);
+  const resto = totalJogadores % jogadoresPorTime;
+  if (indiceTime < timesCheios) return jogadoresPorTime;
+  if (indiceTime === timesCheios && resto > 0) return resto;
   return 0;
 }
 
@@ -363,14 +365,31 @@ function executar() {
 
 btnProximo.addEventListener("click", () => {
   totalJogadores = Number(inputTotalJogadores.value);
+  jogadoresPorTime = Number(inputJogadoresPorTime.value);
 
   if (totalJogadores < 5) {
     alert("Mínimo de 5 jogadores!");
     return;
   }
 
-  nTimes = Math.ceil(totalJogadores / 5);
-  infoTimes.textContent = `Serão ${nTimes} time(s) de até 5 jogadores.`;
+  if (jogadoresPorTime < 2) {
+    alert("Mínimo de 2 jogadores por time!");
+    return;
+  }
+
+  if (jogadoresPorTime > totalJogadores) {
+    alert("Jogadores por time não pode ultrapassar o total de jogadores!");
+    return;
+  }
+
+  nTimes = Math.ceil(totalJogadores / jogadoresPorTime);
+
+  if (nTimes < 2) {
+    alert("Com esses valores só será formado 1 time. Aumente o número de jogadores ou diminua jogadores por time.");
+    return;
+  }
+
+  infoTimes.textContent = `Serão ${nTimes} time(s) de até ${jogadoresPorTime} jogadores.`;
 
   listaJogadores.innerHTML = "";
   array_genes.length = 0;
@@ -410,6 +429,7 @@ btnProximo.addEventListener("click", () => {
 
   configSection.classList.add("hidden");
   jogadoresSection.classList.remove("hidden");
+  btn1Sortear.classList.remove("hidden");
 });
 
 btnSortear.addEventListener("click", () => {
@@ -434,12 +454,22 @@ btnSortear.addEventListener("click", () => {
   localStorage.setItem("timesFutsal", JSON.stringify(dados));
 
   resultadoSection.classList.add("hidden");
-  btn1Sortear.remove();
+  btn1Sortear.classList.add("hidden");
   const inicio = performance.now();
   executar();
   const fim = performance.now();
   const tempoTotal = ((fim - inicio) / 1000).toFixed(2);
   console.log(`Tempo total de execução: ${tempoTotal}s`);
+});
+
+btn1Sortear.addEventListener("click", () => {
+  jogadoresSection.classList.add("hidden");
+  configSection.classList.remove("hidden");
+  inputTotalJogadores.value = "";
+  inputJogadoresPorTime.value = "5";
+  array_genes.length = 0;
+  listaJogadores.innerHTML = "";
+  localStorage.removeItem("timesFutsal");
 });
 
 btnNovo.addEventListener("click", () => {
@@ -449,6 +479,7 @@ btnNovo.addEventListener("click", () => {
   jogadoresSection.classList.add("hidden");
   configSection.classList.remove("hidden");
   inputTotalJogadores.value = "";
+  inputJogadoresPorTime.value = "5";
   array_genes.length = 0;
   listaJogadores.innerHTML = "";
 });
@@ -460,9 +491,11 @@ window.addEventListener("load", () => {
   const dados = JSON.parse(dadosSalvos);
 
   totalJogadores = dados.totalJogadores;
-  nTimes = Math.ceil(totalJogadores / 5);
+  jogadoresPorTime = dados.jogadoresPorTime || 5;
+  nTimes = Math.ceil(totalJogadores / jogadoresPorTime);
 
   inputTotalJogadores.value = totalJogadores;
+  inputJogadoresPorTime.value = jogadoresPorTime;
 
   btnProximo.click();
 
@@ -501,6 +534,7 @@ function salvarEstado() {
     "timesFutsal",
     JSON.stringify({
       totalJogadores,
+      jogadoresPorTime,
       jogadores,
     }),
   );
