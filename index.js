@@ -138,13 +138,14 @@ function fitness(individuo) {
   return diferencaTotal; // Quão menor for esse diferencaTotal, mais equilibrados os times estão
 }
 
-function selecaoTorneio(tamanhoTorneio = 3) {
+//função para selecionar o melhor candito entre 3 com melhor fitness
+function selecaoTorneio(populacaoRef, tamanhoTorneio = 3) {
   let melhor = null;
   let melhorFitness = Infinity;
 
   for (let i = 0; i < tamanhoTorneio; i++) {
-    const index = Math.floor(Math.random() * populacao.length); // Escolhe um indivíduo aleatoriamente
-    const individuo = populacao[index]; // Pego o indivíduo que está na posição index do arranjo(populacao)
+    const index = Math.floor(Math.random() * populacaoRef.length);
+    const individuo = populacaoRef[index];
     if (individuo.fitness < melhorFitness) {
       melhorFitness = individuo.fitness;
       melhor = individuo;
@@ -154,45 +155,113 @@ function selecaoTorneio(tamanhoTorneio = 3) {
   return melhor;
 }
 
+//seleciona individuos unicos, com uma quantidade(80% da população) para cruzarem
+function selecionarParaCruzamento(populacaoRef, quantidade) {
+  const selecionados = [];
+  const indicesUsados = new Set();//garantia para não repetir index
+
+  while (selecionados.length < quantidade) {
+    const candidato = selecaoTorneio(populacaoRef);//usa o torneio para selecionar um candidato
+    const idxOriginal = populacaoRef.indexOf(candidato);
+    if (!indicesUsados.has(idxOriginal)) {//verifica se já tem o index
+      indicesUsados.add(idxOriginal);
+      selecionados.push(candidato);
+    }
+  }
+
+  return selecionados;//devolve os selecionados
+}
+
+/*função para facilitar corte para cruzamento
+  trasforma disso [time1(leo, jf, carlos), time2(...)
+  para isso [3,4,5,6] onde o valor dentro é o time em que o jogador tá e o index
+  é o jogador em relação a o array_genes*/
+function individuoParaCodificacao(individuo) {
+  const codificacao = [];
+  for (const gene of array_genes) {
+    for (let t = 1; t <= nTimes; t++) {
+      const chave = `time${t}`;
+      if (individuo[chave].some((j) => j.nome === gene.nome)) {//verifica se o gene ta nesse time, se tiver passa para o prox gene
+        codificacao.push(t);
+        break;
+      }
+    }
+  }
+  return codificacao;
+}
+
+//faz o processo inverso da função anterior
+function codificacaoParaIndividuo(codificacao) {
+  const individuo = {};
+  for (let t = 1; t <= nTimes; t++) {
+    individuo[`time${t}`] = [];
+  }
+
+  const capacidades = [];
+  for (let t = 1; t <= nTimes; t++) {
+    capacidades.push(getCapacidadeTime(t - 1));
+  }
+
+  for (let i = 0; i < array_genes.length; i++) {
+    const time = codificacao[i];
+    const chave = `time${time}`;
+    individuo[chave].push(array_genes[i]);
+  }
+
+  return individuo;
+}
+
+//garante que não há genes em excesso em cromossomos e nem duplicados em individuos
+function repararCodificacao(codificacao) {
+  const contagem = {};
+  for (let i = 0; i < array_genes.length; i++) {
+    const val = codificacao[i];
+    contagem[val] = contagem[val] || [];
+    contagem[val].push(i);
+  }
+
+  const duplicatas = [];
+  for (const time in contagem) {
+    if (contagem[time].length > getCapacidadeTime(time - 1)) {
+      const excesso = contagem[time].length - getCapacidadeTime(time - 1);
+      duplicatas.push(...contagem[time].slice(contagem[time].length - excesso));
+    }
+  }
+
+  const ausentes = [];
+  for (let t = 1; t <= nTimes; t++) {
+    const count = contagem[t] ? contagem[t].length : 0;
+    const capacidade = getCapacidadeTime(t - 1);
+    for (let i = 0; i < capacidade - count; i++) {
+      ausentes.push(t);
+    }
+  }
+
+  for (let i = 0; i < duplicatas.length; i++) {
+    codificacao[duplicatas[i]] = ausentes[i];
+  }
+
+  return codificacao;
+}
+
 function cruzamento(pai1, pai2) {
-  const filho = {};
-  for (let t = 1; t <= nTimes; t++) {
-    filho[`time${t}`] = [];
-  }
+  const codPai1 = individuoParaCodificacao(pai1);
+  const codPai2 = individuoParaCodificacao(pai2);
 
-  const todosGenesPai1 = [];
-  const todosGenesPai2 = [];
+  const pontoCorte = Math.floor(Math.random() * (codPai1.length - 1)) + 1;//corta num ponto aleatorio
 
-  for (let t = 1; t <= nTimes; t++) {
-    const chave = `time${t}`;
-    todosGenesPai1.push(...pai1[chave]); // Junto todos os jogadores
-    todosGenesPai2.push(...pai2[chave]); // Junto todos os jogadores
-  }
+  //forma os dois filhos
+  let filho1Cod = [...codPai1.slice(0, pontoCorte), ...codPai2.slice(pontoCorte)];
+  let filho2Cod = [...codPai2.slice(0, pontoCorte), ...codPai1.slice(pontoCorte)];
 
-  const genesPai1Embaralhados = embaralhar(todosGenesPai1);
-  const genesPai2Embaralhados = embaralhar(todosGenesPai2);
+  //garante que não tenha genes repetidos
+  filho1Cod = repararCodificacao(filho1Cod);
+  filho2Cod = repararCodificacao(filho2Cod);
 
-  for (const gene of genesPai1Embaralhados) {
-    if (!geneUsado(filho, gene)) {
-      // Verifica se o gene já esta no filho
-      const timeDestino = encontrarTimeDisponivel(filho); // Encontra um time disponível
-      if (timeDestino) {
-        filho[timeDestino].push(gene);
-      }
-    }
-  }
+  const filho1 = codificacaoParaIndividuo(filho1Cod);
+  const filho2 = codificacaoParaIndividuo(filho2Cod);
 
-  for (const gene of genesPai2Embaralhados) {
-    if (!geneUsado(filho, gene)) {
-      // Verifica se o gene já esta no filho
-      const timeDestino = encontrarTimeDisponivel(filho); // Encontra um time disponível
-      if (timeDestino) {
-        filho[timeDestino].push(gene);
-      }
-    }
-  }
-
-  return filho;
+  return [filho1, filho2];
 }
 
 function geneUsado(individuo, gene) {
@@ -246,41 +315,47 @@ function mutacao(individuo, taxaMutacao = 0.1) {
 function executar() {
   inicializacao_populacao();
 
-  const geracoes = 100; // Quantas vezes o algoritmo vai evoluir
-  const taxaElitismo = 0.1;
-  const nElitismo = Math.max(1, Math.floor(tamPopulacao * taxaElitismo)); // Garante pelo menos um indivíduo
-  const taxaCrossover = 0.8;
+  const geracoes = 100;
+  const nElitismo = 1;
+  const nCruzamento = Math.floor(tamPopulacao * 0.8);
 
   for (let geracao = 0; geracao < geracoes; geracao++) {
-    populacao.sort((a, b) => a.fitness - b.fitness); // Ordenar a população, melhor indivíduo fica na frente
+    populacao.sort((a, b) => a.fitness - b.fitness);//ordena do menor ao maior valor fitness
 
     const novaPopulacao = [];
 
-    // Elitismo
-    for (let i = 0; i < nElitismo; i++) {
-      novaPopulacao.push(JSON.parse(JSON.stringify(populacao[i])));
+    novaPopulacao.push(JSON.parse(JSON.stringify(populacao[0])));//fazendo uma copia real do melhor individuo para nova população
+
+    const candidatosCruzamento = selecionarParaCruzamento(populacao, nCruzamento);//seleciona 80% para o cruzamento
+    embaralhar(candidatosCruzamento);//embaralhando a ordem dos candidatos a cruzar
+
+    for (let i = 0; i + 1 < candidatosCruzamento.length; i += 2) {
+      const pai1 = candidatosCruzamento[i];
+      const pai2 = candidatosCruzamento[i + 1];
+
+      const [filho1, filho2] = cruzamento(pai1, pai2);//gerando os filhos
+
+      const filho1Mutado = mutacao(filho1);
+      filho1Mutado.fitness = fitness(filho1Mutado);
+      novaPopulacao.push(filho1Mutado);
+
+      const filho2Mutado = mutacao(filho2);
+      filho2Mutado.fitness = fitness(filho2Mutado);
+      novaPopulacao.push(filho2Mutado);
     }
 
+    //preenchendo o restante da população com bons canditos
     while (novaPopulacao.length < tamPopulacao) {
-      // Gera nova população
-      const pai1 = selecaoTorneio();
-      const pai2 = selecaoTorneio();
-      let filho;
-
-      if (Math.random() < taxaCrossover) {
-        filho = cruzamento(pai1, pai2);
-      } else {
-        filho = JSON.parse(JSON.stringify(Math.random() < 0.5 ? pai1 : pai2));
-      }
-      filho = mutacao(filho);
-      filho.fitness = fitness(filho);
-      novaPopulacao.push(filho);
+      const individuo = selecaoTorneio(populacao);
+      const copiado = JSON.parse(JSON.stringify(individuo));
+      copiado.fitness = individuo.fitness;
+      novaPopulacao.push(copiado);
     }
 
     populacao = novaPopulacao;
   }
 
-  populacao.sort((a, b) => a.fitness - b.fitness); // Após todas as gerações, pega o melhor resultado final
+  populacao.sort((a, b) => a.fitness - b.fitness);
   const melhorSolucao = populacao[0];
   localStorage.setItem("timesGerados", JSON.stringify(melhorSolucao));
   renderizarTimes(melhorSolucao);
