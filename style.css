@@ -101,6 +101,56 @@ label {
   color: var(--color-text);
 }
 
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(132, 124, 132, 0.3);
+  border-radius: 10px;
+  background: rgba(7, 5, 5, 0.6);
+  color: var(--color-text);
+  font-size: 0.9rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  resize: vertical;
+  transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+  line-height: 1.5;
+}
+
+textarea:hover {
+  border-color: rgba(200, 155, 43, 0.3);
+  background: rgba(7, 5, 5, 0.8);
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(200, 155, 43, 0.15);
+  background: rgba(7, 5, 5, 0.9);
+}
+
+textarea::placeholder {
+  color: rgba(132, 124, 132, 0.5);
+}
+
+.detected-count {
+  margin-top: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(200, 155, 43, 0.1);
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.note {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(132, 124, 132, 0.08);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 input[type="number"],
 input[type="text"] {
   width: 100%;

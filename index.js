@@ -17,6 +17,9 @@ const listaJogadores = document.getElementById("lista-jogadores");
 const infoTimes = document.getElementById("info-times");
 const timesContainer = document.getElementById("times-container");
 const btn1Sortear = document.getElementById("btn-novo-jogadores");
+const listaTextarea = document.getElementById("lista-textarea");
+const detectedCount = document.getElementById("detected-count");
+let nomesParseados = [];
 
 function getPeso(estrelas) {
   switch (estrelas) {
@@ -364,7 +367,15 @@ function executar() {
 }
 
 btnProximo.addEventListener("click", () => {
-  totalJogadores = Number(inputTotalJogadores.value);
+  const raw = listaTextarea.value.trim();
+  if (raw) {
+    nomesParseados = parsearLista(raw);
+    totalJogadores = nomesParseados.length;
+    inputTotalJogadores.value = totalJogadores;
+  } else {
+    totalJogadores = Number(inputTotalJogadores.value);
+  }
+
   jogadoresPorTime = Number(inputJogadoresPorTime.value);
 
   if (totalJogadores < 5) {
@@ -406,6 +417,10 @@ btnProximo.addEventListener("click", () => {
     inputNome.id = `nome-${i}`;
     inputNome.placeholder = "Nome";
     inputNome.required = true;
+
+    if (nomesParseados[i]) {
+      inputNome.value = nomesParseados[i];
+    }
 
     const inputEstrelas = document.createElement("input");
     inputEstrelas.type = "number";
@@ -465,6 +480,9 @@ btnSortear.addEventListener("click", () => {
 btn1Sortear.addEventListener("click", () => {
   jogadoresSection.classList.add("hidden");
   configSection.classList.remove("hidden");
+  listaTextarea.value = "";
+  detectedCount.classList.add("hidden");
+  nomesParseados = [];
   inputTotalJogadores.value = "";
   inputJogadoresPorTime.value = "5";
   array_genes.length = 0;
@@ -478,6 +496,9 @@ btnNovo.addEventListener("click", () => {
   resultadoSection.classList.add("hidden");
   jogadoresSection.classList.add("hidden");
   configSection.classList.remove("hidden");
+  listaTextarea.value = "";
+  detectedCount.classList.add("hidden");
+  nomesParseados = [];
   inputTotalJogadores.value = "";
   inputJogadoresPorTime.value = "5";
   array_genes.length = 0;
@@ -492,20 +513,23 @@ window.addEventListener("load", () => {
 
   totalJogadores = dados.totalJogadores;
   jogadoresPorTime = dados.jogadoresPorTime || 5;
+  nomesParseados = dados.listaRaw ? parsearLista(dados.listaRaw) : [];
   nTimes = Math.ceil(totalJogadores / jogadoresPorTime);
+
+  if (dados.listaRaw) {
+    listaTextarea.value = dados.listaRaw;
+    detectedCount.textContent = `${nomesParseados.length} jogador(es) detectado(s)`;
+    detectedCount.classList.remove("hidden");
+  }
 
   inputTotalJogadores.value = totalJogadores;
   inputJogadoresPorTime.value = jogadoresPorTime;
 
   btnProximo.click();
 
-  // espera o DOM atualizar
   setTimeout(() => {
     dados.jogadores.forEach((jogador, i) => {
-      const nomeInput = document.getElementById(`nome-${i}`);
       const estrelasInput = document.getElementById(`estrelas-${i}`);
-
-      if (nomeInput) nomeInput.value = jogador.nome;
       if (estrelasInput) estrelasInput.value = jogador.estrelas;
     });
   }, 0);
@@ -535,10 +559,48 @@ function salvarEstado() {
     JSON.stringify({
       totalJogadores,
       jogadoresPorTime,
+      listaRaw: listaTextarea.value,
       jogadores,
     }),
   );
 }
+
+function parsearLista(texto) {
+  const linhas = texto.split('\n');
+  const nomes = [];
+
+  for (const linha of linhas) {
+    const t = linha.trim();
+    if (!t) continue;
+
+    if (/goleiros?/i.test(t) && !/^\d+\s*[\.\)]/.test(t)) break;
+
+    if (t.startsWith('*')) continue;
+
+    const match = t.match(/^\d+\s*[\.\)]\s*(.*)/);
+    if (match) {
+      const nome = match[1].trim();
+      if (nome) nomes.push(nome);
+    }
+  }
+
+  return nomes;
+}
+
+listaTextarea.addEventListener("input", () => {
+  const raw = listaTextarea.value.trim();
+  if (!raw) {
+    detectedCount.classList.add("hidden");
+    nomesParseados = [];
+    return;
+  }
+
+  nomesParseados = parsearLista(raw);
+  const total = nomesParseados.length;
+  inputTotalJogadores.value = total;
+  detectedCount.textContent = `${total} jogador(es) detectado(s)`;
+  detectedCount.classList.remove("hidden");
+});
 
 function renderizarTimes(solucao) {
   timesContainer.innerHTML = "";

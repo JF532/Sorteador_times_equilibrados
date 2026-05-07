@@ -14,13 +14,19 @@
     <section id="config-section" class="card">
       <h2>Configuração</h2>
       <div class="form-group">
-        <label for="total-jogadores">Quantos vão jogar?</label>
+        <label for="lista-textarea">Cole a lista de jogadores</label>
+        <textarea id="lista-textarea" rows="6" placeholder="Cole aqui a lista do WhatsApp...&#10;Ex:&#10;1. João&#10;2. Maria&#10;3. ..." spellcheck="false"></textarea>
+        <p id="detected-count" class="detected-count hidden"></p>
+      </div>
+      <div class="form-group">
+        <label for="total-jogadores">Ou digite manualmente quantos vão jogar</label>
         <input type="number" id="total-jogadores" min="5" max="60" placeholder="Ex: 20">
       </div>
       <div class="form-group">
         <label for="jogadores-por-time">Jogadores por time?</label>
         <input type="number" id="jogadores-por-time" min="2" max="11" placeholder="Ex: 5" value="5">
       </div>
+      <p class="note">* Goleiros não são contados automaticamente. Se quiser incluí-los, coloque-os na lista de jogadores.</p>
       <button id="btn-proximo" class="btn btn-primary">Próximo</button>
     </section>
 
