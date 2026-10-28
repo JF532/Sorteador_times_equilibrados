@@ -5,45 +5,234 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sorteador de Times Equilibrados</title>
   <meta name="theme-color" content="#070505">
-  <link rel="stylesheet" href="style.css" >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>Sorteador de Times Equilibrados</h1>
+  <!-- Technical Minimalist Navigation -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#sorteador-anchor" class="brand-title">
+        Sorteador de Times Equilibrados
+      </a>
 
-    <section id="config-section" class="card">
-      <h2>Configuração</h2>
-      <div class="form-group">
-        <label for="lista-textarea">Cole a lista de jogadores</label>
-        <textarea id="lista-textarea" rows="6" placeholder="Cole aqui a lista do WhatsApp...&#10;Ex:&#10;1. João&#10;2. Maria&#10;3. ..." spellcheck="false"></textarea>
-        <p id="detected-count" class="detected-count hidden"></p>
-      </div>
-      <div class="form-group">
-        <label for="total-jogadores">Ou digite manualmente quantos vão jogar</label>
-        <input type="number" id="total-jogadores" min="5" max="60" placeholder="Ex: 20">
-      </div>
-      <div class="form-group">
-        <label for="jogadores-por-time">Jogadores por time?</label>
-        <input type="number" id="jogadores-por-time" min="2" max="11" placeholder="Ex: 5" value="5">
-      </div>
-      <p class="note">* Goleiros não são contados automaticamente. Se quiser incluí-los, coloque-os na lista de jogadores.</p>
-      <button id="btn-proximo" class="btn btn-primary">Próximo</button>
-    </section>
+      <nav class="nav-links">
+        <a href="#sorteador-anchor" class="nav-link">01. SORTEADOR</a>
+        <a href="#banco-anchor" class="nav-link">02. BANCO DE JOGADORES</a>
+      </nav>
 
-    <section id="jogadores-section" class="card hidden">
-      <h2>Cadastrar Jogadores</h2>
-      <p id="info-times"></p>
-      <div id="lista-jogadores"></div>
-      <button id="btn-sortear" class="btn btn-success">Sortear Times</button>
-      <button id="btn-novo-jogadores" class="btn btn-primary">Novo Sorteio</button>
-    </section>
+      <div class="nav-actions">
+        <a href="#banco-anchor" class="status-badge" title="Jogadores salvos no navegador">
+          <span class="status-dot"></span>
+          <span><strong id="nav-saved-count">0</strong> SALVOS</span>
+        </a>
+      </div>
+    </div>
+  </header>
 
-    <section id="resultado-section" class="card hidden">
-      <h2>Resultado</h2>
-      <div id="times-container"></div>
-      <button id="btn-novo" class="btn btn-primary">Novo Sorteio</button>
-    </section>
-  </div>
+  <!-- Main Centered Application (Direct to the point, like the original) -->
+  <main id="sorteador-anchor" class="main-section">
+    <div class="container-narrow">
+      <div class="page-header">
+        <div class="status-badge">
+          <span class="status-dot"></span>
+          <span id="step-indicator">ETAPA 01 / 03 — CONFIGURAÇÃO</span>
+        </div>
+        <h1>Sorteador de Times Equilibrados</h1>
+      </div>
+
+      <!-- Technical Container with L-shaped Corner Markers -->
+      <div class="tech-box">
+        <span class="corner corner-tl" aria-hidden="true"></span>
+        <span class="corner corner-tr" aria-hidden="true"></span>
+        <span class="corner corner-bl" aria-hidden="true"></span>
+        <span class="corner corner-br" aria-hidden="true"></span>
+
+        <!-- STEP 1: CONFIGURAÇÃO -->
+        <section id="config-section" class="app-panel">
+          <div class="panel-header">
+            <h2>01. Configuração</h2>
+            <div class="panel-header-actions">
+              <button id="btn-colar-exemplo" class="btn btn-ghost btn-sm" type="button">
+                LISTA EXEMPLO
+              </button>
+              <span class="mono-tag">WHATSAPP PARSER</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <div class="label-row">
+              <label for="lista-textarea">COLE A LISTA DE JOGADORES</label>
+              <button id="btn-limpar-lista" type="button" class="btn-link">LIMPAR</button>
+            </div>
+            <textarea
+              id="lista-textarea"
+              rows="8"
+              placeholder="Cole aqui a lista do WhatsApp...&#10;Ex:&#10;1. JF&#10;2. Felipe&#10;3. Mauro&#10;...&#10;*Goleiros*&#10;1. Thiago"
+              spellcheck="false"
+            ></textarea>
+            <div class="detected-status-bar">
+              <p id="detected-count" class="detected-count hidden"></p>
+              <p id="detected-known" class="detected-known hidden"></p>
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group">
+              <label for="total-jogadores">TOTAL DE JOGADORES</label>
+              <input type="number" id="total-jogadores" min="5" max="60" placeholder="Ex: 14">
+            </div>
+            <div class="form-group">
+              <label for="jogadores-por-time">JOGADORES POR TIME</label>
+              <input type="number" id="jogadores-por-time" min="2" max="11" placeholder="Ex: 5" value="5">
+            </div>
+          </div>
+
+          <p class="note">
+            * Goleiros não são contados automaticamente após <code>*Goleiros*</code>. Jogadores já salvos terão suas estrelas preenchidas automaticamente.
+          </p>
+
+          <button id="btn-proximo" class="btn btn-primary btn-block" type="button">
+            PRÓXIMO →
+          </button>
+        </section>
+
+        <!-- STEP 2: CADASTRAR / CONFERIR JOGADORES -->
+        <section id="jogadores-section" class="app-panel hidden">
+          <div class="panel-header">
+            <div>
+              <h2>02. Cadastrar Jogadores</h2>
+              <p id="info-times" class="panel-subtitle"></p>
+            </div>
+            <span id="memory-match-badge" class="mono-tag mono-tag-mint">MEMÓRIA ATIVA</span>
+          </div>
+
+          <div class="jogadores-toolbar">
+            <span class="toolbar-hint">CLIQUE NAS ESTRELAS (0–5) • SALVAMENTO AUTOMÁTICO</span>
+            <button id="btn-preencher-novos" type="button" class="btn-link">
+              PADRÃO 3★ PARA NOVOS
+            </button>
+          </div>
+
+          <div id="lista-jogadores" class="jogadores-list"></div>
+
+          <div class="panel-actions">
+            <button id="btn-sortear" class="btn btn-forest btn-block" type="button">
+              SORTEAR TIMES
+            </button>
+            <button id="btn-novo-jogadores" class="btn btn-ghost btn-block" type="button">
+              ← VOLTAR PARA A LISTA
+            </button>
+          </div>
+        </section>
+
+        <!-- STEP 3: RESULTADO -->
+        <section id="resultado-section" class="app-panel hidden">
+          <div class="panel-header">
+            <div>
+              <h2>03. Resultado</h2>
+              <p class="panel-subtitle">DISTRIBUIÇÃO EQUILIBRADA (100 GERAÇÕES)</p>
+            </div>
+            <span id="fitness-badge" class="mono-tag">FITNESS: 0.0</span>
+          </div>
+
+          <div id="times-container" class="times-bento-grid"></div>
+
+          <div class="resultado-actions">
+            <button id="btn-copiar-whatsapp" class="btn btn-primary btn-block" type="button">
+              COPIAR TIMES PARA O WHATSAPP
+            </button>
+            <div class="resultado-secondary-btns">
+              <button id="btn-resortear" class="btn btn-forest" type="button">
+                SORTEAR NOVAMENTE
+              </button>
+              <button id="btn-novo" class="btn btn-ghost" type="button">
+                NOVO SORTEIO
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Section Divider Hairline -->
+  <hr class="section-divider">
+
+  <!-- Player Database Section -->
+  <section id="banco-anchor" class="db-section">
+    <div class="container-wide">
+      <div class="section-header">
+        <div>
+          <span class="mono-eyebrow">02 // MEMÓRIA LOCAL</span>
+          <h2 class="section-title">Banco de Jogadores Salvos</h2>
+          <p class="section-desc">
+            Os jogadores ficam armazenados no seu navegador. Quando aparecerem na lista do WhatsApp, suas estrelas são carregadas automaticamente.
+          </p>
+        </div>
+        <div class="db-backup-actions">
+          <button id="btn-exportar-db" class="btn btn-ghost btn-sm" type="button">
+            EXPORTAR JSON
+          </button>
+          <label for="input-importar-db" class="btn btn-ghost btn-sm">
+            IMPORTAR JSON
+          </label>
+          <input type="file" id="input-importar-db" accept=".json" class="hidden">
+          <button id="btn-limpar-db" class="btn btn-coral btn-sm" type="button">
+            LIMPAR TUDO
+          </button>
+        </div>
+      </div>
+
+      <div class="tech-box db-controls-box">
+        <span class="corner corner-tl" aria-hidden="true"></span>
+        <span class="corner corner-tr" aria-hidden="true"></span>
+        <span class="corner corner-bl" aria-hidden="true"></span>
+        <span class="corner corner-br" aria-hidden="true"></span>
+
+        <div class="db-controls-grid">
+          <div class="form-group">
+            <label for="db-search">BUSCAR JOGADOR NA MEMÓRIA</label>
+            <input type="text" id="db-search" placeholder="Digite o nome para filtrar...">
+          </div>
+
+          <form id="form-add-jogador" class="db-add-form">
+            <div class="form-group">
+              <label for="db-add-nome">CADASTRAR / ATUALIZAR JOGADOR</label>
+              <input type="text" id="db-add-nome" placeholder="Ex: João Gabriel" required>
+            </div>
+            <div class="form-group">
+              <label for="db-add-estrelas">ESTRELAS (0–5)</label>
+              <input type="number" id="db-add-estrelas" min="0" max="5" step="1" value="3" required>
+            </div>
+            <button type="submit" class="btn btn-primary db-add-btn">+ SALVAR</button>
+          </form>
+        </div>
+      </div>
+
+      <div id="db-empty-state" class="db-empty hidden">
+        <p>NENHUM JOGADOR SALVO AINDA. AVALIE UM JOGADOR NO SORTEADOR OU ADICIONE ACIMA.</p>
+      </div>
+
+      <div id="db-grid" class="db-bento-grid"></div>
+    </div>
+  </section>
+
+  <!-- Minimal Technical Footer (No fake logo) -->
+  <footer class="footer">
+    <div class="container-wide footer-bar">
+      <div class="footer-info">
+        <span class="mono-label">UNIVASF — INTELIGÊNCIA ARTIFICIAL</span>
+        <span class="footer-sep">/</span>
+        <span>João Filipe Peixoto de Carvalho &amp; Leonardo Rodrigues da Silva Santos</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <script src="index.js"></script>
 </body>
