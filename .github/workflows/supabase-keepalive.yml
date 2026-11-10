@@ -1,0 +1,110 @@
+name: Supabase Keepalive
+
+# Mantém o projeto do Supabase ativo:
+# - 2x por dia faz um ping na tabela via PostgREST (conta como atividade de
+#   banco para o Supabase, evitando a pausa automática de ~7 dias).
+# - Se o projeto estiver pausado, restaura automaticamente pela Management API.
+#
+# Secrets necessários (Settings -> Secrets and variables -> Actions):
+# - SUPABASE_ANON_KEY: a anon public key do projeto (a mesma do index.js).
+# - SUPABASE_PAT: token pessoal criado em supabase.com (conta -> Access Tokens),
+#   com permissão de escrita nas configurações deste projeto (permite restaurar).
+
+on:
+  schedule:
+    - cron: "17 8,20 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    name: Ping e restauração
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: gbjpgdzmgrxwwyeabfxv
+      SUPABASE_URL: https://gbjpgdzmgrxwwyeabfxv.supabase.co
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_PAT: ${{ secrets.SUPABASE_PAT }}
+
+    steps:
+      - name: Ping na tabela (atividade de banco)
+        id: ping
+        run: |
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::Secret SUPABASE_ANON_KEY não configurado."
+            exit 1
+          fi
+
+          if curl -sf --retry 3 --retry-delay 10 --max-time 60 \
+            "$SUPABASE_URL/rest/v1/baba_estado?select=id" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY"; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+            echo "Projeto ativo (ping OK)."
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "Ping falhou — o projeto pode estar pausado."
+          fi
+
+      - name: Consultar status do projeto
+        if: steps.ping.outputs.ok != 'true'
+        id: status
+        run: |
+          if [ -z "$SUPABASE_PAT" ]; then
+            echo "::error::Secret SUPABASE_PAT não configurado — não é possível restaurar automaticamente."
+            exit 1
+          fi
+
+          status=$(curl -sf --max-time 60 \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF" \
+            -H "Authorization: Bearer $SUPABASE_PAT" \
+            | jq -r '.status')
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "Status atual do projeto: $status"
+
+      - name: Restaurar projeto pausado
+        if: steps.ping.outputs.ok != 'true'
+        run: |
+          case "${{ steps.status.outputs.status }}" in
+            paused|pause_queued|inactive|restore_failed)
+              echo "Projeto pausado. Restaurando..."
+              curl -sf --max-time 120 -X POST \
+                "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/restore" \
+                -H "Authorization: Bearer $SUPABASE_PAT"
+              echo "Restauração iniciada (leva alguns minutos). O próximo run do cron confirma."
+              ;;
+            restoring)
+              echo "Projeto já está em restauração. Aguardando o próximo run."
+              ;;
+            *)
+              echo "Status '${{ steps.status.outputs.status }}' não requer restauração."
+              ;;
+          esac
+
+      - name: Checkout para o keepalive do repositório
+        if: github.event_name == 'schedule'
+        uses: actions/checkout@v4
+
+      - name: Keepalive do repositório (evita suspensão dos workflows após 60 dias)
+        if: github.event_name == 'schedule'
+        run: |
+          git config user.name "keepalive-bot"
+          git config user.email "keepalive-bot@users.noreply.github.com"
+
+          ultimo_commit=$(git log -1 --format=%ct)
+          agora=$(date +%s)
+          dias=$(( (agora - ultimo_commit) / 86400 ))
+
+          if [ "$dias" -ge 50 ]; then
+            echo "Último commit há $dias dias — criando commit de keepalive."
+            git commit --allow-empty -m "chore: keepalive automático do repositório"
+            git push
+          else
+            echo "Repositório ativo (último commit há $dias dias). Nada a fazer."
+          fi
