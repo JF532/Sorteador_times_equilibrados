@@ -14,17 +14,21 @@
   <!-- Technical Minimalist Navigation -->
   <header class="navbar">
     <div class="nav-container">
-      <a href="#sorteador-anchor" class="brand-title">
-        Sorteador de Times Equilibrados
-      </a>
+      <div class="brand-group">
+        <img id="icone-secreto" class="brand-icon" src="icone.png" alt="Ícone do sorteador">
+        <a href="#sorteador-anchor" class="brand-title">
+          Sorteador de Times Equilibrados
+        </a>
+      </div>
 
       <nav class="nav-links">
         <a href="#sorteador-anchor" class="nav-link">01. SORTEADOR</a>
-        <a href="#banco-anchor" class="nav-link">02. BANCO DE JOGADORES</a>
+        <a href="#banco-anchor" class="nav-link hidden" id="nav-banco-link">03. BANCO DE JOGADORES</a>
       </nav>
 
       <div class="nav-actions">
-        <a href="#banco-anchor" class="status-badge" title="Jogadores salvos no navegador">
+        <span id="nav-sync-status" class="sync-status sync-status-local" title="Status da sincronização">MODO LOCAL</span>
+        <a href="#banco-anchor" class="status-badge hidden" id="nav-status-badge" title="Jogadores salvos no banco">
           <span class="status-dot"></span>
           <span><strong id="nav-saved-count">0</strong> SALVOS</span>
         </a>
@@ -135,7 +139,6 @@
               <h2>03. Resultado</h2>
               <p class="panel-subtitle">DISTRIBUIÇÃO EQUILIBRADA (100 GERAÇÕES)</p>
             </div>
-            <span id="fitness-badge" class="mono-tag">FITNESS: 0.0</span>
           </div>
 
           <div id="times-container" class="times-bento-grid"></div>
@@ -143,6 +146,12 @@
           <div class="resultado-actions">
             <button id="btn-copiar-whatsapp" class="btn btn-primary btn-block" type="button">
               COPIAR TIMES PARA O WHATSAPP
+            </button>
+            <button id="btn-copiar-evento" class="btn btn-ghost btn-block" type="button">
+              COPIAR LINK DO EVENTO
+            </button>
+            <button id="btn-exportar-imagem" class="btn btn-ghost btn-block" type="button">
+              IMAGEM DOS TIMES
             </button>
             <div class="resultado-secondary-btns">
               <button id="btn-resortear" class="btn btn-forest" type="button">
@@ -161,15 +170,129 @@
   <!-- Section Divider Hairline -->
   <hr class="section-divider">
 
+  <!-- Match Registration Section -->
+  <section id="partidas-section" class="db-section hidden">
+    <div class="container-wide">
+      <div id="evento-header" class="evento-header hidden">
+        <div class="evento-header-top">
+          <div>
+            <span class="mono-eyebrow">EVENTO COMPARTILHADO</span>
+            <h2 id="evento-nome" class="section-title">Evento</h2>
+            <p id="evento-meta" class="section-desc"></p>
+          </div>
+          <div class="evento-actions">
+            <button id="btn-copiar-link-evento" class="btn btn-ghost btn-sm" type="button">
+              COPIAR LINK
+            </button>
+            <button id="btn-sair-evento" class="btn btn-ghost btn-sm hidden" type="button">
+              SAIR DO EVENTO
+            </button>
+          </div>
+        </div>
+        <div id="evento-times" class="evento-times"></div>
+      </div>
+
+      <div class="section-header">
+        <div>
+          <span class="mono-eyebrow">02 // JOGOS DO DIA</span>
+          <h2 class="section-title">Registrar Jogo</h2>
+          <p class="section-desc">
+            A data vem do evento e não pode ser alterada. Selecione dois times e registre os gols e as assistências de cada jogador.
+          </p>
+        </div>
+      </div>
+
+      <div class="tech-box partida-box">
+        <span class="corner corner-tl" aria-hidden="true"></span>
+        <span class="corner corner-tr" aria-hidden="true"></span>
+        <span class="corner corner-bl" aria-hidden="true"></span>
+        <span class="corner corner-br" aria-hidden="true"></span>
+
+        <div class="partida-toolbar">
+          <div class="partida-data-fixa">
+            <span class="label">DATA DA PARTIDA</span>
+            <span id="partida-data-label" class="partida-data-valor">SEM EVENTO</span>
+          </div>
+          <button id="btn-abrir-partida" class="btn btn-primary hidden" type="button">
+            + ADICIONAR PARTIDA
+          </button>
+        </div>
+
+        <p id="partida-aviso-times" class="note hidden">
+          Sorteie os times na etapa 03 antes de registrar uma partida.
+        </p>
+
+        <p id="partida-aviso-evento" class="note partida-aviso-evento hidden">
+          Este evento já foi encerrado. Visualização somente leitura.
+        </p>
+
+        <form id="form-partida" class="partida-form hidden">
+          <div class="partida-top-grid">
+            <div class="form-group">
+              <label for="partida-time-a">TIME A</label>
+              <select id="partida-time-a"></select>
+            </div>
+            <div class="form-group">
+              <label for="partida-time-b">TIME B</label>
+              <select id="partida-time-b"></select>
+            </div>
+          </div>
+
+          <div id="partida-stats" class="partida-stats hidden"></div>
+
+          <div class="partida-preview">
+            <span id="partida-placar-preview">SELECIONE OS TIMES</span>
+          </div>
+
+          <div class="partida-form-actions">
+            <button id="btn-salvar-partida" class="btn btn-primary btn-block" type="submit">
+              SALVAR PARTIDA
+            </button>
+            <button id="btn-cancelar-partida" class="btn btn-ghost btn-block" type="button">
+              CANCELAR
+            </button>
+          </div>
+        </form>
+
+        <p class="note partida-regra">
+          * A partir de 3 partidas: média (gols + assistências) 1.0 = +1★, 2.0 = +2★... máximo 5★. As estrelas nunca diminuem.
+        </p>
+      </div>
+
+      <div class="partidas-historico-header">
+        <span class="mono-eyebrow">JOGOS REGISTRADOS</span>
+        <div class="partidas-historico-actions">
+          <button id="btn-toggle-historico" class="btn btn-ghost btn-sm hidden" type="button">
+            VER TODOS OS JOGOS
+          </button>
+          <button id="btn-finalizar-evento" class="btn btn-gold btn-sm hidden" type="button">
+            FINALIZAR EVENTO
+          </button>
+          <button id="btn-limpar-partidas" class="btn btn-coral btn-sm" type="button">
+            LIMPAR HISTÓRICO
+          </button>
+        </div>
+      </div>
+
+      <div id="partidas-empty-state" class="db-empty hidden">
+        <p>NENHUMA PARTIDA REGISTRADA AINDA.</p>
+      </div>
+
+      <div id="partidas-lista" class="partidas-lista"></div>
+    </div>
+  </section>
+
+  <hr class="section-divider">
+
   <!-- Player Database Section -->
-  <section id="banco-anchor" class="db-section">
+  <section id="banco-anchor" class="db-section hidden">
     <div class="container-wide">
       <div class="section-header">
         <div>
-          <span class="mono-eyebrow">02 // MEMÓRIA LOCAL</span>
+          <span class="mono-eyebrow">03 // BANCO DE JOGADORES</span>
           <h2 class="section-title">Banco de Jogadores Salvos</h2>
           <p class="section-desc">
-            Os jogadores ficam armazenados no seu navegador. Quando aparecerem na lista do WhatsApp, suas estrelas são carregadas automaticamente.
+            Os jogadores ficam salvos na nuvem e sincronizados entre aparelhos. Sem conexão, continuam no navegador e são enviados quando a nuvem voltar.
           </p>
         </div>
         <div class="db-backup-actions">
@@ -180,6 +303,9 @@
             IMPORTAR JSON
           </label>
           <input type="file" id="input-importar-db" accept=".json" class="hidden">
+          <button id="btn-restaurar-base" class="btn btn-ghost btn-sm" type="button">
+            RESTAURAR ESTRELAS BASE
+          </button>
           <button id="btn-limpar-db" class="btn btn-coral btn-sm" type="button">
             LIMPAR TUDO
           </button>
@@ -234,6 +360,8 @@
   <!-- Toast Notification -->
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="index.js"></script>
 </body>
 </html>
