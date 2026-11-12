@@ -1689,6 +1689,107 @@ input[type="date"] {
 }
 
 /* ==========================================
+   LOGIN MOCK / MODAL
+   ========================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background-color: rgba(7, 5, 5, 0.82);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.modal-box {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  position: relative;
+  padding: 1.5rem;
+}
+
+.modal-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  color: var(--color-paper);
+  margin: 0;
+}
+
+.login-erro {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-coral);
+  border: 1px solid rgba(255, 140, 105, 0.4);
+  background-color: rgba(255, 140, 105, 0.08);
+  padding: 0.5rem 0.65rem;
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ==========================================
+   RANKING GERAL (TODOS OS EVENTOS)
+   ========================================== */
+.ranking-geral-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ranking-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ranking-tab {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  background-color: transparent;
+  border: 1px solid var(--color-hairline);
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.15s ease-out, border-color 0.15s ease-out;
+}
+
+.ranking-tab:hover {
+  color: var(--color-gold);
+  border-color: var(--color-hairline-gold);
+}
+
+.ranking-tab-ativo {
+  color: var(--color-gold);
+  border-color: var(--color-hairline-gold);
+  background-color: var(--color-panel-alt);
+}
+
+.ranking-geral-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ranking-geral-lista .ranking-linha {
+  border: 1px solid var(--color-hairline);
+  background-color: var(--color-panel-alt);
+  padding: 0.55rem 0.75rem;
+}
+
+/* ==========================================
    TOAST NOTIFICATION
    ========================================== */
 .toast {
@@ -1771,5 +1872,9 @@ input[type="date"] {
 
   .evento-header {
     padding: 1rem;
+  }
+
+  .ranking-tab {
+    flex: 1;
   }
 }

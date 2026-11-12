@@ -13,8 +13,11 @@ const EVENTOS_STORAGE_KEY = "baba_eventos_v1";
 const EVENTO_ATUAL_STORAGE_KEY = "baba_evento_atual_v1";
 const FOTOS_STORAGE_KEY = "baba_fotos_v1";
 const ESTATISTICAS_RESET_STORAGE_KEY = "baba_estatisticas_reset_v1";
-const LIMIAR_MEDIA_POR_ESTRELA = 1.0;
-const MIN_PARTIDAS_PROGRESSAO = 3;
+const ADMIN_SESSAO_STORAGE_KEY = "baba_admin_sessao_v1";
+const ADMIN_USUARIO = "admin";
+const ADMIN_SENHA = "eniacadmin";
+const LIMIAR_MEDIA_POR_ESTRELA = 3.0;
+const MIN_EVENTOS_PROGRESSAO = 3;
 
 // Supabase: cole aqui a URL e a anon public key do seu projeto.
 // Enquanto estiverem vazias, o app funciona apenas no modo local.
@@ -148,6 +151,20 @@ const btnSairEvento = document.getElementById("btn-sair-evento");
 const btnExportarImagem = document.getElementById("btn-exportar-imagem");
 const resultadoActionsEl = document.querySelector(".resultado-actions");
 
+// Login mock e ranking geral
+const btnAdminAcesso = document.getElementById("btn-admin-acesso");
+const loginModal = document.getElementById("login-modal");
+const formLogin = document.getElementById("form-login");
+const loginUsuario = document.getElementById("login-usuario");
+const loginSenha = document.getElementById("login-senha");
+const loginErro = document.getElementById("login-erro");
+const btnLoginCancelar = document.getElementById("btn-login-cancelar");
+const finalizarHint = document.getElementById("finalizar-hint");
+const btnRankingGols = document.getElementById("btn-ranking-gols");
+const btnRankingAssistencias = document.getElementById("btn-ranking-assistencias");
+const rankingGeralLista = document.getElementById("ranking-geral-lista");
+const rankingGeralEmpty = document.getElementById("ranking-geral-empty");
+
 let nomesParseados = [];
 let toastTimeout = null;
 let cliquesIcone = 0;
@@ -158,6 +175,8 @@ let jogadorEdicaoSelecionado = null;
 let timesDisponiveis = [];
 let mostrarTodosJogos = false;
 let eventoEncerradoAvisado = null;
+let rankingGeralCategoria = "gols";
+let rankingGeralLimite = 10;
 const gruposJogosAbertos = new Set();
 
 // ==========================================
@@ -1124,6 +1143,110 @@ function mostrarToast(mensagem) {
 }
 
 // ==========================================
+// LOGIN MOCK DO ADMINISTRADOR
+// ==========================================
+
+function adminLogado() {
+  try {
+    const raw = localStorage.getItem(ADMIN_SESSAO_STORAGE_KEY);
+    if (!raw) return false;
+    const sessao = JSON.parse(raw);
+    return Boolean(sessao && sessao.usuario === ADMIN_USUARIO);
+  } catch (err) {
+    return false;
+  }
+}
+
+function atualizarUIAdmin() {
+  const logado = adminLogado();
+  if (btnAdminAcesso) {
+    btnAdminAcesso.textContent = logado ? "SAIR" : "ENTRAR";
+    btnAdminAcesso.title = logado
+      ? "Sair da conta de administrador"
+      : "Entrar como administrador";
+  }
+}
+
+function abrirLogin() {
+  if (!loginModal) return;
+  if (loginErro) {
+    loginErro.textContent = "";
+    loginErro.classList.add("hidden");
+  }
+  if (loginUsuario) loginUsuario.value = "";
+  if (loginSenha) loginSenha.value = "";
+  loginModal.classList.remove("hidden");
+  loginUsuario?.focus();
+}
+
+function fecharLogin() {
+  loginModal?.classList.add("hidden");
+}
+
+function entrarAdmin(usuario, senha) {
+  const usuarioValido = String(usuario || "").trim().toLowerCase() === ADMIN_USUARIO;
+  const senhaValida = String(senha || "") === ADMIN_SENHA;
+  if (!usuarioValido || !senhaValida) return false;
+
+  try {
+    localStorage.setItem(
+      ADMIN_SESSAO_STORAGE_KEY,
+      JSON.stringify({ usuario: ADMIN_USUARIO, em: Date.now() })
+    );
+  } catch (err) {
+    console.error("Erro ao salvar sessão do administrador:", err);
+  }
+  return true;
+}
+
+function sairAdmin() {
+  try {
+    localStorage.removeItem(ADMIN_SESSAO_STORAGE_KEY);
+  } catch (err) {
+    console.error("Erro ao encerrar sessão do administrador:", err);
+  }
+}
+
+btnAdminAcesso?.addEventListener("click", () => {
+  if (adminLogado()) {
+    sairAdmin();
+    atualizarUIAdmin();
+    renderizarPartidas();
+    mostrarToast("Sessão de administrador encerrada.");
+    return;
+  }
+  abrirLogin();
+});
+
+btnLoginCancelar?.addEventListener("click", fecharLogin);
+
+loginModal?.addEventListener("click", (e) => {
+  if (e.target === loginModal) fecharLogin();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && loginModal && !loginModal.classList.contains("hidden")) {
+    fecharLogin();
+  }
+});
+
+formLogin?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (entrarAdmin(loginUsuario?.value, loginSenha?.value)) {
+    fecharLogin();
+    atualizarUIAdmin();
+    renderizarPartidas();
+    mostrarToast("Administrador conectado.");
+    return;
+  }
+  if (loginErro) {
+    loginErro.textContent = "Usuário ou senha inválidos.";
+    loginErro.classList.remove("hidden");
+  }
+  mostrarToast("Usuário ou senha inválidos.");
+});
+
+// ==========================================
 // PAINEL OCULTO (10 CLIQUES NO ÍCONE)
 // ==========================================
 
@@ -1193,12 +1316,18 @@ function formatarData(dataISO) {
   return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
+function chaveEventoDaPartida(partida) {
+  if (partida?.eventoId) return `evento:${partida.eventoId}`;
+  return `data:${partida?.data || "sem-data"}`;
+}
+
 function calcularEstatisticasJogador(nome, partidas) {
   const alvo = normalizarChaveNome(nome);
   const corte = Number(estadoCache.estatisticasResetEm) || 0;
   let jogos = 0;
   let gols = 0;
   let assistencias = 0;
+  const eventos = new Set();
 
   for (const partida of partidas) {
     if (Number(partida.criadoEm || 0) < corte) continue;
@@ -1210,6 +1339,7 @@ function calcularEstatisticasJogador(nome, partidas) {
     if (!participou) continue;
 
     jogos++;
+    eventos.add(chaveEventoDaPartida(partida));
     for (const estatistica of estatisticasDaPartida(partida)) {
       if (normalizarChaveNome(estatistica.jogador) !== alvo) continue;
       gols += estatistica.gols;
@@ -1217,8 +1347,9 @@ function calcularEstatisticasJogador(nome, partidas) {
     }
   }
 
-  const media = jogos > 0 ? (gols + assistencias) / jogos : 0;
-  return { jogos, gols, assistencias, media };
+  const totalEventos = eventos.size;
+  const media = totalEventos > 0 ? (gols + assistencias) / totalEventos : 0;
+  return { jogos, eventos: totalEventos, gols, assistencias, media };
 }
 
 function recalcularEstrelasPorPartidas() {
@@ -1231,7 +1362,7 @@ function recalcularEstrelasPorPartidas() {
   for (const chave in db) {
     const jogador = db[chave];
     const stats = calcularEstatisticasJogador(jogador.nome, partidas);
-    if (stats.jogos < MIN_PARTIDAS_PROGRESSAO) continue;
+    if (stats.eventos < MIN_EVENTOS_PROGRESSAO) continue;
 
     const base = Number.isFinite(Number(jogador.estrelasBase))
       ? Number(jogador.estrelasBase)
@@ -2155,6 +2286,8 @@ function criarGrupoPartidas(grupo) {
 function renderizarPartidas() {
   if (!partidasLista) return;
 
+  renderizarRankingGeral();
+
   const partidas = partidasNoEscopoAtual();
   const grupos = agruparPartidasPorEvento(partidas);
 
@@ -2174,13 +2307,20 @@ function renderizarPartidas() {
     btnLimparPartidas.classList.toggle("hidden", editaveis.length === 0);
   }
 
+  const logado = adminLogado();
+  const temJogosDoEvento =
+    Boolean(eventoAtual) && partidas.some((p) => p.eventoId === eventoAtual.id);
+
   if (btnFinalizarEvento) {
-    const temJogos = Boolean(eventoAtual) && partidas.some((p) => p.eventoId === eventoAtual.id);
-    btnFinalizarEvento.classList.toggle("hidden", !temJogos);
+    btnFinalizarEvento.classList.toggle("hidden", !temJogosDoEvento || !logado);
     btnFinalizarEvento.textContent =
       eventoAtual && (eventoFinalizado(eventoAtual) || !eventoEhHoje(eventoAtual))
         ? "GERAR RANKING"
         : "FINALIZAR EVENTO";
+  }
+
+  if (finalizarHint) {
+    finalizarHint.classList.toggle("hidden", !temJogosDoEvento || logado);
   }
 
   if (grupos.length === 0) {
@@ -3548,7 +3688,7 @@ async function exportarImagemTimes() {
   }
 }
 
-function criarLinhaRanking(posicao, jogador, valor, sufixo) {
+function criarLinhaRanking(posicao, jogador, valor, sufixo, sufixoPlural) {
   const linha = document.createElement("div");
   linha.className = `ranking-linha${posicao === 1 ? " ranking-linha-topo" : ""}`;
 
@@ -3567,7 +3707,8 @@ function criarLinhaRanking(posicao, jogador, valor, sufixo) {
 
   const valorEl = document.createElement("span");
   valorEl.className = "ranking-valor";
-  valorEl.textContent = `${valor} ${sufixo}${valor === 1 ? "" : "S"}`;
+  const plural = sufixoPlural !== undefined ? sufixoPlural : `${sufixo}S`;
+  valorEl.textContent = `${valor} ${valor === 1 ? sufixo : plural}`;
 
   linha.appendChild(medalha);
   linha.appendChild(ident);
@@ -3624,7 +3765,7 @@ async function exportarImagemRanking() {
     const colunas = document.createElement("div");
     colunas.className = "ranking-colunas";
 
-    const criarColuna = (rotulo, lista, campo, sufixo) => {
+    const criarColuna = (rotulo, lista, campo, sufixo, sufixoPlural) => {
       const coluna = document.createElement("div");
       coluna.className = "ranking-coluna";
 
@@ -3640,14 +3781,16 @@ async function exportarImagemRanking() {
         coluna.appendChild(vazio);
       } else {
         lista.forEach((item, indice) => {
-          coluna.appendChild(criarLinhaRanking(indice + 1, item.jogador, item[campo], sufixo));
+          coluna.appendChild(
+            criarLinhaRanking(indice + 1, item.jogador, item[campo], sufixo, sufixoPlural)
+          );
         });
       }
       return coluna;
     };
 
-    colunas.appendChild(criarColuna("ARTILHARIA", topGols, "gols", "GOL"));
-    colunas.appendChild(criarColuna("ASSISTÊNCIAS", topAssist, "assistencias", "ASSIST."));
+    colunas.appendChild(criarColuna("ARTILHARIA", topGols, "gols", "GOL", "GOLS"));
+    colunas.appendChild(criarColuna("ASSISTÊNCIAS", topAssist, "assistencias", "ASSIST.", "ASSIST."));
     wrapper.appendChild(colunas);
 
     document.body.appendChild(wrapper);
@@ -3698,6 +3841,12 @@ async function exportarImagemRanking() {
 }
 
 async function finalizarEventoAtual() {
+  if (!adminLogado()) {
+    mostrarToast("Entre como administrador para encerrar o evento.");
+    abrirLogin();
+    return;
+  }
+
   if (!eventoAtual) {
     mostrarToast("Não há evento para finalizar.");
     return;
@@ -3727,11 +3876,71 @@ async function finalizarEventoAtual() {
 }
 
 // ==========================================
+// RANKING GERAL (TODOS OS EVENTOS)
+// ==========================================
+
+function estatisticasGerais() {
+  const mapa = new Map();
+  const corte = Number(estadoCache.estatisticasResetEm) || 0;
+
+  for (const partida of carregarPartidas()) {
+    if (Number(partida.criadoEm || 0) < corte) continue;
+    for (const item of estatisticasDaPartida(partida)) {
+      const chave = normalizarChaveNome(item.jogador);
+      if (!chave) continue;
+      const atual = mapa.get(chave) || { jogador: item.jogador, gols: 0, assistencias: 0 };
+      atual.gols += item.gols;
+      atual.assistencias += item.assistencias;
+      mapa.set(chave, atual);
+    }
+  }
+
+  return mapa;
+}
+
+function renderizarRankingGeral() {
+  if (!rankingGeralLista) return;
+
+  const ativo = rankingGeralCategoria === "assistencias" ? "assistencias" : "gols";
+  btnRankingGols?.classList.toggle("ranking-tab-ativo", ativo === "gols");
+  btnRankingAssistencias?.classList.toggle("ranking-tab-ativo", ativo === "assistencias");
+
+  const lista = topDaCategoria(estatisticasGerais(), ativo, rankingGeralLimite);
+  rankingGeralLista.innerHTML = "";
+
+  if (lista.length === 0) {
+    rankingGeralEmpty?.classList.remove("hidden");
+    return;
+  }
+
+  rankingGeralEmpty?.classList.add("hidden");
+
+  const sufixo = ativo === "gols" ? "GOL" : "ASSIST.";
+  const sufixoPlural = ativo === "gols" ? "GOLS" : "ASSIST.";
+  lista.forEach((item, indice) => {
+    rankingGeralLista.appendChild(
+      criarLinhaRanking(indice + 1, item.jogador, item[ativo], sufixo, sufixoPlural)
+    );
+  });
+}
+
+btnRankingGols?.addEventListener("click", () => {
+  rankingGeralCategoria = "gols";
+  renderizarRankingGeral();
+});
+
+btnRankingAssistencias?.addEventListener("click", () => {
+  rankingGeralCategoria = "assistencias";
+  renderizarRankingGeral();
+});
+
+// ==========================================
 // PAINEL VISUAL DO BANCO DE JOGADORES
 // ==========================================
 
 function renderizarBancoJogadores(filtro = "") {
   if (!dbGrid) return;
+  renderizarRankingGeral();
   const db = carregarBancoJogadores();
   const partidas = carregarPartidas();
   const chaves = Object.keys(db);
@@ -3820,10 +4029,10 @@ function renderizarBancoJogadores(filtro = "") {
     const stats = calcularEstatisticasJogador(jogador.nome, partidas);
     const statsEl = document.createElement("div");
     statsEl.className = "db-player-stats";
-    if (stats.jogos > 0) {
-      statsEl.textContent = `${stats.jogos}J • ${stats.gols}G • ${stats.assistencias}A • MÉDIA ${stats.media.toFixed(2)}`;
+    if (stats.eventos > 0) {
+      statsEl.textContent = `${stats.eventos}E • ${stats.gols}G • ${stats.assistencias}A • MÉDIA ${stats.media.toFixed(2)}`;
     } else {
-      statsEl.textContent = "SEM PARTIDAS REGISTRADAS";
+      statsEl.textContent = "SEM EVENTOS REGISTRADOS";
     }
 
     bottom.appendChild(picker);
@@ -4038,6 +4247,7 @@ function restaurarSessaoLocal() {
 }
 
 window.addEventListener("load", async () => {
+  atualizarUIAdmin();
   renderizarBancoJogadores();
   atualizarContadoresMemoria();
   renderizarEventoHeader();
