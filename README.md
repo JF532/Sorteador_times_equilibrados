@@ -15,14 +15,16 @@ Idealizado para uso pela atlética da faculdade, permitindo sortear times equili
 - **Atualização em tempo real** — novos jogos e alterações no banco aparecem nos outros aparelhos via Realtime
 - **Backup do banco de jogadores** — exportar e importar os jogadores em JSON
 - **Fotos dos jogadores** — foto de perfil adicionada no painel administrativo; salva no Storage do Supabase e sincronizada entre aparelhos (com fallback local offline)
-- **Finalizar evento com ranking** — tranca o registro de jogos do dia e gera uma imagem do evento com o top 3 goleadores e o top 3 assistentes (com as fotos dos jogadores)
+- **Finalizar evento com ranking** — tranca o registro de jogos do dia e gera uma imagem do evento com o top 3 goleadores e o top 3 assistentes (com as fotos dos jogadores); exige login do administrador
+- **Login do administrador (mock)** — credenciais fixas no código; libera apenas o encerramento/ranking do evento (os jogos continuam abertos para todos)
+- **Ranking geral** — seção pública com o Top 10 de gols e assistências de todos os eventos, atualizada em tempo real
 - **Configuração flexível** — escolha quantos jogadores por time
 - **Algoritmo Genético** — distribui os jogadores de forma equilibrada
 - **Copiar para o WhatsApp** — copia os times sorteados já formatados para colar no grupo: cabeçalho com o evento, total de estrelas de cada time, jogadores alinhados em bloco monoespaçado com estrelas visuais (⭐⭐⭐) e o link do evento no final
 - **Imagem dos times** — gera um PNG do resultado para baixar ou compartilhar direto no WhatsApp (celular)
 - **Persistência** — o sorteio em andamento e o evento atual são salvos automaticamente
 - **Histórico de partidas** — registre data, times, gols e assistências de cada jogo
-- **Progressão de estrelas** — jogadores sobem de estrela conforme a média de gols + assistências por partida
+- **Progressão de estrelas** — jogadores sobem de estrela conforme a média de gols + assistências por evento
 
 ## Como funciona o AG
 
@@ -64,7 +66,7 @@ Pesos usados por estrela: 5★ = 5, 4★ = 2, 3★ = 1.5, 2★ = 1, 1★ = 0.5.
 
 ### Finalizar evento e ranking do dia
 
-Na seção de jogos, ao lado do histórico, o botão **FINALIZAR EVENTO** aparece quando o evento do dia tem pelo menos um jogo registrado:
+Na seção de jogos, ao lado do histórico, o botão **FINALIZAR EVENTO** aparece quando o evento do dia tem pelo menos um jogo registrado. O encerramento exige login de administrador (veja abaixo):
 
 - Ao clicar, ele pede confirmação, **tranca o registro de novos jogos** daquele evento (igual à virada do dia) e gera uma **imagem do ranking**: top 3 goleadores e top 3 assistentes do evento, com as fotos dos jogadores, medalhas 🥇🥈🥉 e o nome/data do evento.
 - Empates na contagem são desempatados pela **menor estrela** (quem tem menos estrelas fica na frente); se empatar também nas estrelas, segue a ordem alfabética.
@@ -72,13 +74,32 @@ Na seção de jogos, ao lado do histórico, o botão **FINALIZAR EVENTO** aparec
 - Depois de finalizado (ou depois da virada do dia), o botão vira **GERAR RANKING** — a imagem pode ser gerada quantas vezes quiser, sem trancar nada de novo.
 - O status finalizado faz parte do evento e sincroniza entre aparelhos.
 
+### Login do administrador (mock)
+
+O acesso administrativo de encerramento usa **credenciais fixas** no código:
+
+- **Usuário:** `admin`
+- **Senha:** `eniacadmin`
+
+Clique em **ENTRAR** na navbar para abrir o modal e informe as credenciais. Enquanto não estiver logado, o botão de finalizar/gerar ranking fica oculto (uma dica aparece no lugar) e o encerramento é bloqueado. O botão **SAIR** remove a sessão.
+
+O que **não** muda: qualquer pessoa com o link continua podendo registrar jogos, e o painel do banco de jogadores continua sendo liberado pelos 10 cliques no ícone.
+
+> **Aviso:** este login é apenas cosmético (client-side). As credenciais ficam visíveis no código-fonte e não há backend validando a sessão — ele serve para evitar encerramento acidental, não é uma barreira de segurança.
+
+### Ranking geral
+
+A seção **RANKING GERAL** (no menu) mostra o **Top 10** de gols e assistências somando todos os eventos registrados, com abas para alternar entre as duas categorias, fotos e estrelas dos jogadores. O desempate é o mesmo do ranking do dia (mais gols/assistências, depois menor estrela, depois ordem alfabética).
+
+O ranking respeita o corte do **RESTAURAR ESTRELAS BASE**: jogos anteriores ao corte deixam de contar para a classificação, mas continuam no histórico de eventos. Eventos não finalizados também entram no ranking geral.
+
 ### Banco de jogadores
 
 A seção **Banco de Jogadores** fica oculta por padrão. Clique **10 vezes no ícone** ao lado do título para liberar o painel administrativo.
 
 Na seção é possível buscar, cadastrar, alterar a nota ou remover jogadores, além de exportar/importar um backup em JSON. Os nomes são comparados sem diferenciar maiúsculas/minúsculas, acentos ou espaços extras (`João Gabriel` = `joao gabriel`). Com o Supabase configurado, o banco é compartilhado entre os aparelhos.
 
-O botão **RESTAURAR ESTRELAS BASE** volta todos os jogadores para a nota base, desfazendo em massa o bônus conquistado por partidas, e **zera a contagem de jogos/gols/assistências/média** usada na progressão e nos cards a partir do clique (útil depois de testes). O histórico de eventos, os jogos e o ranking continuam salvos; partidas novas voltam a contar normalmente.
+O botão **RESTAURAR ESTRELAS BASE** volta todos os jogadores para a nota base, desfazendo em massa o bônus conquistado por partidas, e **zera a contagem de eventos/gols/assistências/média** usada na progressão, nos cards e no ranking geral a partir do clique (útil depois de testes). O histórico de eventos, os jogos e o ranking do dia continuam salvos; partidas novas voltam a contar normalmente.
 
 ### Fotos dos jogadores
 
@@ -88,7 +109,7 @@ No painel administrativo, cada card de jogador tem um botão de foto (avatar à 
 - **Configuração:** o bucket e as políticas de acesso são criados pelo `supabase.sql` — em projetos já existentes, basta rodar o SQL novamente no SQL Editor.
 - **Privacidade:** o bucket é público e as políticas são abertas, como o resto do projeto — qualquer pessoa com a URL da foto consegue vê-la, e quem tem o app pode enviá-la ou removê-la. Não use fotos que exijam privacidade.
 
-### Partidas e progressão de estrelas
+### Eventos e progressão de estrelas
 
 Depois de sortear os times, a seção **Jogos do dia** aparece logo abaixo do resultado, para qualquer pessoa com o link:
 
@@ -99,7 +120,7 @@ Depois de sortear os times, a seção **Jogos do dia** aparece logo abaixo do re
 5. **Salvar Partida** fecha o formulário e zera os campos; **Cancelar** fecha sem salvar
 6. A data aparece apenas como leitura (`DATA DA PARTIDA: 29/10/2026`)
 
-A cada partida salva, o sistema calcula a média do jogador: `(gols + assistências) / partidas`. A partir de 3 partidas, a estrela sobe conforme as faixas da média (média 1.0 = +1★, 2.0 = +2★, etc.), sempre limitada a 5★. **As estrelas nunca descem**, nem ao excluir uma partida do histórico. Editar a nota manualmente redefine a estrela base do jogador.
+A cada partida salva, o sistema recalcula as estatísticas do jogador: `média = (gols + assistências) / eventos`, onde **eventos** é o número de eventos distintos em que ele participou (partidas do mesmo dia/evento contam uma vez só). A partir de 3 eventos, a estrela sobe conforme as faixas da média (média 3.0 = +1★, 6.0 = +2★, etc.), sempre limitada a 5★. **As estrelas nunca descem**, nem ao excluir uma partida do histórico. Editar a nota manualmente redefine a estrela base do jogador.
 
 ## Sincronização com Supabase (opcional)
 
@@ -137,6 +158,7 @@ Tudo fica em uma única linha (`id = 'principal'`) da tabela `public.baba_estado
 ```json
 {
   "versao": 1,
+  "estatisticasResetEm": 0,
   "jogadores": {
     "joao gabriel": { "nome": "João Gabriel", "estrelas": 4, "estrelasBase": 3, "fotoVersao": 0, "atualizadoEm": 0 }
   },

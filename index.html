@@ -23,10 +23,14 @@
 
       <nav class="nav-links">
         <a href="#sorteador-anchor" class="nav-link">01. SORTEADOR</a>
+        <a href="#ranking-anchor" class="nav-link">04. RANKING GERAL</a>
         <a href="#banco-anchor" class="nav-link hidden" id="nav-banco-link">03. BANCO DE JOGADORES</a>
       </nav>
 
       <div class="nav-actions">
+        <button id="btn-admin-acesso" class="btn btn-ghost btn-sm" type="button" title="Entrar como administrador">
+          ENTRAR
+        </button>
         <span id="nav-sync-status" class="sync-status sync-status-local" title="Status da sincronização">MODO LOCAL</span>
         <a href="#banco-anchor" class="status-badge hidden" id="nav-status-badge" title="Jogadores salvos no banco">
           <span class="status-dot"></span>
@@ -255,7 +259,7 @@
         </form>
 
         <p class="note partida-regra">
-          * A partir de 3 partidas: média (gols + assistências) 1.0 = +1★, 2.0 = +2★... máximo 5★. As estrelas nunca diminuem.
+          * A partir de 3 eventos: média (gols + assistências) 3.0 = +1★, 6.0 = +2★... máximo 5★. As estrelas nunca diminuem.
         </p>
       </div>
 
@@ -273,6 +277,10 @@
           </button>
         </div>
       </div>
+
+      <p id="finalizar-hint" class="note partida-aviso-evento hidden">
+        Somente o administrador pode encerrar o evento. Use ENTRAR no topo da página.
+      </p>
 
       <div id="partidas-empty-state" class="db-empty hidden">
         <p>NENHUMA PARTIDA REGISTRADA AINDA.</p>
@@ -346,6 +354,45 @@
     </div>
   </section>
 
+  <hr class="section-divider">
+
+  <!-- General Ranking Section -->
+  <section id="ranking-anchor" class="db-section">
+    <div class="container-wide">
+      <div class="section-header">
+        <div>
+          <span class="mono-eyebrow">04 // RANKING GERAL</span>
+          <h2 class="section-title">Artilharia e Assistências</h2>
+          <p class="section-desc">
+            Top 10 de todos os eventos registrados. Desempate: mais gols/assistências, depois menor número de estrelas e, por fim, ordem alfabética.
+          </p>
+        </div>
+      </div>
+
+      <div class="tech-box ranking-geral-box">
+        <span class="corner corner-tl" aria-hidden="true"></span>
+        <span class="corner corner-tr" aria-hidden="true"></span>
+        <span class="corner corner-bl" aria-hidden="true"></span>
+        <span class="corner corner-br" aria-hidden="true"></span>
+
+        <div class="ranking-tabs">
+          <button id="btn-ranking-gols" class="ranking-tab ranking-tab-ativo" type="button">
+            GOLS
+          </button>
+          <button id="btn-ranking-assistencias" class="ranking-tab" type="button">
+            ASSISTÊNCIAS
+          </button>
+        </div>
+
+        <div id="ranking-geral-lista" class="ranking-geral-lista"></div>
+
+        <div id="ranking-geral-empty" class="db-empty hidden">
+          <p>SEM GOLS OU ASSISTÊNCIAS REGISTRADOS AINDA.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Minimal Technical Footer (No fake logo) -->
   <footer class="footer">
     <div class="container-wide footer-bar">
@@ -356,6 +403,36 @@
       </div>
     </div>
   </footer>
+
+  <!-- Login mock do administrador -->
+  <div id="login-modal" class="modal-overlay hidden">
+    <form id="form-login" class="modal-box tech-box" autocomplete="off">
+      <span class="corner corner-tl" aria-hidden="true"></span>
+      <span class="corner corner-tr" aria-hidden="true"></span>
+      <span class="corner corner-bl" aria-hidden="true"></span>
+      <span class="corner corner-br" aria-hidden="true"></span>
+
+      <span class="mono-eyebrow">ACESSO DO ADMINISTRADOR</span>
+      <h3 class="modal-title">Entrar</h3>
+
+      <div class="form-group">
+        <label for="login-usuario">USUÁRIO</label>
+        <input type="text" id="login-usuario" autocomplete="off" required>
+      </div>
+
+      <div class="form-group">
+        <label for="login-senha">SENHA</label>
+        <input type="password" id="login-senha" autocomplete="off" required>
+      </div>
+
+      <p id="login-erro" class="login-erro hidden"></p>
+
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-gold btn-block">ENTRAR</button>
+        <button id="btn-login-cancelar" type="button" class="btn btn-ghost btn-block">CANCELAR</button>
+      </div>
+    </form>
+  </div>
 
   <!-- Toast Notification -->
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
