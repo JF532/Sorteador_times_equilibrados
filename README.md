@@ -93,22 +93,6 @@ A seção **RANKING GERAL** (no menu) mostra o **Top 10** de gols e assistência
 
 O ranking respeita o corte do **RESTAURAR ESTRELAS BASE**: jogos anteriores ao corte deixam de contar para a classificação, mas continuam no histórico de eventos. Eventos não finalizados também entram no ranking geral.
 
-### Banco de jogadores
-
-A seção **Banco de Jogadores** fica oculta por padrão. Clique **10 vezes no ícone** ao lado do título para liberar o painel administrativo.
-
-Na seção é possível buscar, cadastrar, alterar a nota ou remover jogadores, além de exportar/importar um backup em JSON. Os nomes são comparados sem diferenciar maiúsculas/minúsculas, acentos ou espaços extras (`João Gabriel` = `joao gabriel`). Com o Supabase configurado, o banco é compartilhado entre os aparelhos.
-
-O botão **RESTAURAR ESTRELAS BASE** volta todos os jogadores para a nota base, desfazendo em massa o bônus conquistado por partidas, e **zera a contagem de eventos/gols/assistências/média** usada na progressão, nos cards e no ranking geral a partir do clique (útil depois de testes). O histórico de eventos, os jogos e o ranking do dia continuam salvos; partidas novas voltam a contar normalmente.
-
-### Fotos dos jogadores
-
-No painel administrativo, cada card de jogador tem um botão de foto (avatar à esquerda do nome). A imagem é comprimida no navegador para JPEG de até 256px (~15–30KB) antes de ser enviada ao bucket `fotos-jogadores` do Supabase Storage. Depois de enviada, ela aparece nos cards do banco, nos times do resultado e no cabeçalho do evento, e também entra na **imagem exportada** dos times.
-
-- **Sem nuvem conectada:** a foto fica salva localmente no navegador e é marcada como pendente. Quando a conexão com a nuvem voltar (inclusive pelo retry automático ao focar a aba), ela é enviada ao Storage sozinha.
-- **Configuração:** o bucket e as políticas de acesso são criados pelo `supabase.sql` — em projetos já existentes, basta rodar o SQL novamente no SQL Editor.
-- **Privacidade:** o bucket é público e as políticas são abertas, como o resto do projeto — qualquer pessoa com a URL da foto consegue vê-la, e quem tem o app pode enviá-la ou removê-la. Não use fotos que exijam privacidade.
-
 ### Eventos e progressão de estrelas
 
 Depois de sortear os times, a seção **Jogos do dia** aparece logo abaixo do resultado, para qualquer pessoa com o link:
@@ -139,17 +123,6 @@ Para sincronizar entre aparelhos:
 5. Publique o app (GitHub Pages, Netlify, Vercel etc.) ou abra localmente. O status da navbar muda para **NUVEM** quando a conexão funciona.
 
 > **Segurança:** a chave `anon` é pública por design. As políticas de RLS deste projeto são intencionalmente abertas para que qualquer pessoa com o link leia e edite o mesmo evento. Não use este projeto para dados sensíveis. Projetos gratuitos do Supabase podem ser pausados por inatividade; se o app ficar offline, reative o projeto no painel.
-
-### Manter a nuvem ativa (workflow opcional)
-
-O plano gratuito do Supabase pausa projetos com pouca atividade de banco (~7 dias). O workflow `.github/workflows/supabase-keepalive.yml` roda 2x ao dia, faz um ping na tabela (conta como atividade) e, se o projeto estiver pausado, **restaura automaticamente** pela Management API do Supabase.
-
-Configuração única no repositório, em **Settings → Secrets and variables → Actions**:
-
-- `SUPABASE_ANON_KEY` — a anon public key (a mesma usada no `index.js`)
-- `SUPABASE_PAT` — token pessoal criado em <https://supabase.com> (conta → Access Tokens), com permissão de **escrita nas configurações deste projeto** (é o que permite restaurar)
-
-Como repositórios públicos têm workflows agendados suspensos após 60 dias sem atividade, o próprio workflow também faz um commit vazio de keepalive no repositório quando o último commit passa de 50 dias.
 
 ### Estrutura dos dados
 
