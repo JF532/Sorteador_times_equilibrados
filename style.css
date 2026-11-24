@@ -1347,12 +1347,42 @@ input[type="date"] {
   color: var(--color-muted);
 }
 
-.partida-stat-input input,
-.partida-stat-gols,
-.partida-stat-assist {
-  width: 52px;
-  padding: 0.35rem 0.25rem;
+.partida-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.partida-stepper-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-hairline);
+  background: var(--color-input-bg);
+  color: var(--color-paper);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.partida-stepper-btn:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.partida-stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.partida-stepper-valor {
+  min-width: 28px;
   text-align: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-paper);
 }
 
 .partida-form-actions {
@@ -1839,6 +1869,26 @@ input[type="date"] {
   .partida-stats,
   .partida-form-actions {
     grid-template-columns: 1fr;
+  }
+
+  .partida-stat-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "nome gols"
+      "nome assist";
+    gap: 0.35rem 0.5rem;
+  }
+
+  .partida-stat-jogador {
+    grid-area: nome;
+  }
+
+  .partida-stat-row > .partida-stat-input:nth-of-type(1) {
+    grid-area: gols;
+  }
+
+  .partida-stat-row > .partida-stat-input:nth-of-type(2) {
+    grid-area: assist;
   }
 
   .star-picker {
