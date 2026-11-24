@@ -213,11 +213,15 @@ function normalizarJogador(jogador, nomeFallback = "") {
   if (!nome) return null;
   const estrelas = Math.max(0, Math.min(5, Number(jogador.estrelas) || 0));
   const baseRaw = jogador.estrelasBase !== undefined ? Number(jogador.estrelasBase) : estrelas;
+  const fotoRemovidaEm = Math.max(0, Number(jogador.fotoRemovidaEm) || 0);
+  const fotoVersaoRaw = Math.max(0, Number(jogador.fotoVersao) || 0);
+  const fotoVersao = fotoRemovidaEm > 0 && fotoRemovidaEm >= fotoVersaoRaw ? 0 : fotoVersaoRaw;
   return {
     nome,
     estrelas,
     estrelasBase: Math.max(0, Math.min(5, Number.isFinite(baseRaw) ? baseRaw : estrelas)),
-    fotoVersao: Number(jogador.fotoVersao) || 0,
+    fotoVersao,
+    ...(fotoRemovidaEm > 0 ? { fotoRemovidaEm } : {}),
     atualizadoEm: Number(jogador.atualizadoEm) || 0,
   };
 }
@@ -572,17 +576,38 @@ function estadoVazio(estado) {
   );
 }
 
+function mesclarJogador(localJogador, remotoJogador) {
+  const localTs = Number(localJogador?.atualizadoEm || 0);
+  const remotoTs = Number(remotoJogador?.atualizadoEm || 0);
+  const escolhido = localTs >= remotoTs ? localJogador : remotoJogador;
+  const outro = localTs >= remotoTs ? remotoJogador : localJogador;
+  const fotoVersaoEscolhida = Math.max(0, Number(escolhido?.fotoVersao) || 0);
+  const fotoVersaoOutro = Math.max(0, Number(outro?.fotoVersao) || 0);
+  const fotoRemovidaEmEscolhida = Math.max(0, Number(escolhido?.fotoRemovidaEm) || 0);
+  const fotoRemovidaEmOutro = Math.max(0, Number(outro?.fotoRemovidaEm) || 0);
+  const fotoRemovidaEm = Math.max(fotoRemovidaEmEscolhida, fotoRemovidaEmOutro);
+  const fotoVersaoMax = Math.max(fotoVersaoEscolhida, fotoVersaoOutro);
+  const fotoVersao =
+    fotoRemovidaEm > 0 && fotoRemovidaEm >= fotoVersaoMax ? 0 : fotoVersaoMax;
+
+  return {
+    ...outro,
+    ...escolhido,
+    fotoVersao,
+    ...(fotoRemovidaEm > 0 ? { fotoRemovidaEm } : {}),
+  };
+}
+
 function mesclarEstados(local, remoto) {
   const jogadores = { ...remoto.jogadores };
 
   for (const chave in local.jogadores) {
     const localJogador = local.jogadores[chave];
     const remotoJogador = jogadores[chave];
-    if (
-      !remotoJogador ||
-      Number(localJogador.atualizadoEm || 0) >= Number(remotoJogador.atualizadoEm || 0)
-    ) {
+    if (!remotoJogador) {
       jogadores[chave] = localJogador;
+    } else {
+      jogadores[chave] = mesclarJogador(localJogador, remotoJogador);
     }
   }
 
@@ -677,6 +702,7 @@ function salvarJogadorNoBanco(nome, estrelas, opcoes = {}) {
     estrelas: nota,
     estrelasBase: Math.max(0, Math.min(5, base)),
     fotoVersao: Number(existente?.fotoVersao) || 0,
+    ...(Number(existente?.fotoRemovidaEm) > 0 ? { fotoRemovidaEm: Number(existente.fotoRemovidaEm) } : {}),
     atualizadoEm: Date.now(),
   };
   salvarBancoJogadores(db);
@@ -698,6 +724,7 @@ function garantirJogadorSalvo(nome, estrelas) {
     nome: nomeLimpo,
     estrelas: nota,
     estrelasBase: nota,
+    fotoVersao: 0,
     atualizadoEm: Date.now(),
   };
   salvarBancoJogadores(db);
@@ -763,14 +790,34 @@ function preencherInicialFoto(elemento, nome) {
 function criarFotoJogador(nome, tamanho = "") {
   const foto = document.createElement("span");
   foto.className = `foto-jogador ${tamanho}`.trim();
+  const chave = normalizarChaveNome(nome);
   const url = fotoUrlDoJogador(nome);
 
   if (url) {
     const img = document.createElement("img");
     img.src = url;
     img.alt = "";
-    img.loading = "lazy";
-    img.addEventListener("error", () => preencherInicialFoto(foto, nome));
+    img.loading = "eager";
+    img.decoding = "async";
+    img.addEventListener("error", () => {
+      const tentativas = Number(img.dataset.tentativas || "0");
+      if (/^https?:/i.test(img.src)) {
+        const fotos = carregarFotosLocais();
+        const fallbackLocal = fotos[chave]?.foto;
+        if (fallbackLocal && img.src !== fallbackLocal) {
+          img.dataset.tentativas = String(tentativas + 1);
+          img.src = fallbackLocal;
+          return;
+        }
+        if (tentativas < 1) {
+          img.dataset.tentativas = String(tentativas + 1);
+          const separador = url.includes("?") ? "&" : "?";
+          img.src = `${url}${separador}retry=${Date.now()}`;
+          return;
+        }
+      }
+      preencherInicialFoto(foto, nome);
+    });
     foto.appendChild(img);
   } else {
     preencherInicialFoto(foto, nome);
@@ -843,6 +890,7 @@ async function sincronizarFotosPendentes() {
     try {
       await subirFotoParaNuvem(chave, fotos[chave].foto);
       estadoCache.jogadores[chave].fotoVersao = Date.now();
+      delete estadoCache.jogadores[chave].fotoRemovidaEm;
       estadoCache.jogadores[chave].atualizadoEm = Date.now();
       delete fotos[chave];
       alterou = true;
@@ -880,6 +928,7 @@ async function processarFotoSelecionada(chave, arquivo) {
       const jogador = estadoCache.jogadores[chave];
       if (jogador) {
         jogador.fotoVersao = Date.now();
+        delete jogador.fotoRemovidaEm;
         jogador.atualizadoEm = Date.now();
         persistirEstadoLocal();
         agendarSalvamentoRemoto();
@@ -909,7 +958,14 @@ function removerFotoDoJogador(chave) {
     delete fotos[chave];
     salvarFotosLocais(fotos);
   }
-  if (supabaseClient && estadoCache.jogadores[chave]?.fotoVersao) {
+  const jogador = estadoCache.jogadores[chave];
+  const tinhaFoto = Boolean(jogador?.fotoVersao);
+  if (jogador) {
+    jogador.fotoVersao = 0;
+    if (tinhaFoto) jogador.fotoRemovidaEm = Date.now();
+    if (tinhaFoto) jogador.atualizadoEm = Date.now();
+  }
+  if (supabaseClient && tinhaFoto) {
     supabaseClient.storage
       .from(SUPABASE_BUCKET_FOTOS)
       .remove([`fotos/${chave}.jpg`])
@@ -1472,50 +1528,65 @@ function criarBlocoEstatisticas(lado, rotulo, time) {
     jogador.appendChild(nomeEl);
     jogador.appendChild(estrelasEl);
 
-    const grupoGols = document.createElement("label");
-    grupoGols.className = "partida-stat-input";
-    const labelGols = document.createElement("span");
-    labelGols.textContent = "GOLS";
-    const inputGols = document.createElement("input");
-    inputGols.type = "number";
-    inputGols.className = "partida-stat-gols";
-    inputGols.min = "0";
-    inputGols.max = "99";
-    inputGols.step = "1";
-    inputGols.value = "0";
-    inputGols.inputMode = "numeric";
-    inputGols.setAttribute("aria-label", `Gols de ${nome}`);
-    grupoGols.appendChild(labelGols);
-    grupoGols.appendChild(inputGols);
+    const criarControleEstatistica = (rotulo, classe, ariaLabel) => {
+      const grupo = document.createElement("div");
+      grupo.className = "partida-stat-input";
 
-    const grupoAssistencias = document.createElement("label");
-    grupoAssistencias.className = "partida-stat-input";
-    const labelAssistencias = document.createElement("span");
-    labelAssistencias.textContent = "ASSIST.";
-    const inputAssistencias = document.createElement("input");
-    inputAssistencias.type = "number";
-    inputAssistencias.className = "partida-stat-assist";
-    inputAssistencias.min = "0";
-    inputAssistencias.max = "99";
-    inputAssistencias.step = "1";
-    inputAssistencias.value = "0";
-    inputAssistencias.inputMode = "numeric";
-    inputAssistencias.setAttribute("aria-label", `Assistências de ${nome}`);
-    grupoAssistencias.appendChild(labelAssistencias);
-    grupoAssistencias.appendChild(inputAssistencias);
+      const label = document.createElement("span");
+      label.textContent = rotulo;
 
-    for (const input of [inputGols, inputAssistencias]) {
-      input.addEventListener("input", () => {
-        const valor = Math.max(0, Math.min(99, Math.floor(Number(input.value) || 0)));
-        input.value = String(valor);
+      const controle = document.createElement("div");
+      controle.className = "partida-stepper";
+
+      const btnMenos = document.createElement("button");
+      btnMenos.type = "button";
+      btnMenos.className = "partida-stepper-btn";
+      btnMenos.textContent = "−";
+      btnMenos.setAttribute("aria-label", `Diminuir ${ariaLabel}`);
+
+      const valorEl = document.createElement("span");
+      valorEl.className = "partida-stepper-valor";
+      valorEl.textContent = "0";
+      valorEl.setAttribute("aria-live", "polite");
+
+      const btnMais = document.createElement("button");
+      btnMais.type = "button";
+      btnMais.className = "partida-stepper-btn";
+      btnMais.textContent = "+";
+      btnMais.setAttribute("aria-label", `Aumentar ${ariaLabel}`);
+
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.className = classe;
+      input.value = "0";
+
+      const atualizar = (delta) => {
+        const atual = Math.max(0, Math.min(99, Math.floor(Number(input.value) || 0)));
+        const proximo = Math.max(0, Math.min(99, atual + delta));
+        input.value = String(proximo);
+        valorEl.textContent = String(proximo);
+        btnMenos.disabled = proximo <= 0;
+        btnMais.disabled = proximo >= 99;
         atualizarTotalDoBloco(bloco);
         atualizarPreviewPlacar();
-      });
-    }
+      };
+
+      btnMenos.addEventListener("click", () => atualizar(-1));
+      btnMais.addEventListener("click", () => atualizar(1));
+      atualizar(0);
+
+      controle.appendChild(btnMenos);
+      controle.appendChild(valorEl);
+      controle.appendChild(btnMais);
+      controle.appendChild(input);
+      grupo.appendChild(label);
+      grupo.appendChild(controle);
+      return grupo;
+    };
 
     row.appendChild(jogador);
-    row.appendChild(grupoGols);
-    row.appendChild(grupoAssistencias);
+    row.appendChild(criarControleEstatistica("GOLS", "partida-stat-gols", `gols de ${nome}`));
+    row.appendChild(criarControleEstatistica("ASSIST.", "partida-stat-assist", `assistências de ${nome}`));
     bloco.appendChild(row);
   }
 
@@ -3603,6 +3674,43 @@ function baixarBlob(blob, nomeArquivo) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+async function aguardarImagensNoElemento(elemento, timeoutMs = 2500) {
+  const imagens = [...(elemento?.querySelectorAll("img") || [])];
+  if (imagens.length === 0) return;
+
+  await Promise.all(
+    imagens.map(
+      (img) =>
+        new Promise((resolve) => {
+          let concluido = false;
+          const finalizar = () => {
+            if (concluido) return;
+            concluido = true;
+            img.removeEventListener("load", finalizar);
+            img.removeEventListener("error", finalizar);
+            resolve();
+          };
+
+          if (img.complete) {
+            if (typeof img.decode === "function" && img.naturalWidth === 0) {
+              img.decode().then(finalizar).catch(finalizar);
+            } else {
+              finalizar();
+            }
+            return;
+          }
+
+          img.addEventListener("load", finalizar, { once: true });
+          img.addEventListener("error", finalizar, { once: true });
+          if (typeof img.decode === "function") {
+            img.decode().then(finalizar).catch(() => {});
+          }
+          setTimeout(finalizar, timeoutMs);
+        })
+    )
+  );
+}
+
 async function exportarImagemTimes() {
   if (typeof html2canvas !== "function") {
     mostrarToast("Gerador de imagem indisponível — verifique a conexão e recarregue.");
@@ -3640,11 +3748,18 @@ async function exportarImagemTimes() {
     cabecalho.appendChild(meta);
 
     wrapper.appendChild(cabecalho);
-    wrapper.appendChild(timesContainer.cloneNode(true));
+    const cloneTimes = timesContainer.cloneNode(true);
+    cloneTimes.querySelectorAll("img").forEach((img) => {
+      img.loading = "eager";
+      img.decoding = "sync";
+      if (/^https?:/i.test(img.src)) img.crossOrigin = "anonymous";
+    });
+    wrapper.appendChild(cloneTimes);
     document.body.appendChild(wrapper);
 
     let canvas;
     try {
+      await aguardarImagensNoElemento(wrapper);
       canvas = await html2canvas(wrapper, {
         scale: 2,
         backgroundColor: "#0e0c0c",
@@ -3792,11 +3907,17 @@ async function exportarImagemRanking() {
     colunas.appendChild(criarColuna("ARTILHARIA", topGols, "gols", "GOL", "GOLS"));
     colunas.appendChild(criarColuna("ASSISTÊNCIAS", topAssist, "assistencias", "ASSIST.", "ASSIST."));
     wrapper.appendChild(colunas);
+    wrapper.querySelectorAll("img").forEach((img) => {
+      img.loading = "eager";
+      img.decoding = "sync";
+      if (/^https?:/i.test(img.src)) img.crossOrigin = "anonymous";
+    });
 
     document.body.appendChild(wrapper);
 
     let canvas;
     try {
+      await aguardarImagensNoElemento(wrapper);
       canvas = await html2canvas(wrapper, {
         scale: 2,
         backgroundColor: "#0e0c0c",
